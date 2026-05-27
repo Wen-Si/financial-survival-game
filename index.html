@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎮 金融职场生存者</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            color: #e0e0e0;
+        }
+        .page { display: none; min-height: 100vh; }
+        .page.active { display: flex; flex-direction: column; }
+        .container { max-width: 900px; margin: 0 auto; padding: 20px; width: 100%; }
+
+        /* Login/Register */
+        .auth-container {
+            display: flex; align-items: center; justify-content: center;
+            min-height: 100vh; padding: 20px;
+        }
+        .auth-card {
+            background: rgba(255,255,255,0.05); backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1); border-radius: 20px;
+            padding: 40px; width: 100%; max-width: 420px;
+        }
+        .auth-card h1 { text-align: center; font-size: 28px; margin-bottom: 8px; color: #fff; }
+        .auth-card .subtitle { text-align: center; color: #888; margin-bottom: 30px; font-size: 14px; }
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; font-size: 13px; color: #aaa; margin-bottom: 6px; }
+        .form-group input, .form-group textarea {
+            width: 100%; padding: 12px 16px; background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.15); border-radius: 10px;
+            color: #fff; font-size: 15px; outline: none; transition: border 0.3s;
+        }
+        .form-group input:focus, .form-group textarea:focus { border-color: #667eea; }
+        .btn {
+            width: 100%; padding: 14px; border: none; border-radius: 10px;
+            font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.3s;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: #fff;
+        }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(102,126,234,0.4); }
+        .btn-secondary {
+            background: rgba(255,255,255,0.1); color: #ccc; margin-top: 10px;
+        }
+        .btn-secondary:hover { background: rgba(255,255,255,0.15); }
+        .auth-link { text-align: center; margin-top: 20px; font-size: 14px; color: #888; }
+        .auth-link a { color: #667eea; text-decoration: none; }
+        .error-msg { color: #ff6b6b; font-size: 13px; margin-bottom: 12px; text-align: center; }
+
+        /* Dashboard */
+        .header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 20px 0; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 30px;
+        }
+        .header h1 { font-size: 24px; color: #fff; }
+        .header .user-info { display: flex; align-items: center; gap: 12px; }
+        .header .username { color: #aaa; font-size: 14px; }
+        .logout-btn {
+            padding: 8px 16px; background: rgba(255,100,100,0.2); border: 1px solid rgba(255,100,100,0.3);
+            border-radius: 8px; color: #ff6b6b; cursor: pointer; font-size: 13px;
+        }
+        .section-title { font-size: 20px; color: #fff; margin-bottom: 20px; }
+        .char-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .char-card {
+            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px; padding: 24px; cursor: pointer; transition: all 0.3s;
+        }
+        .char-card:hover { transform: translateY(-4px); border-color: #667eea; box-shadow: 0 8px 30px rgba(102,126,234,0.2); }
+        .char-card h3 { font-size: 18px; color: #fff; margin-bottom: 8px; }
+        .char-card .career { font-size: 13px; color: #888; margin-bottom: 16px; }
+        .char-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+        .char-stat { font-size: 12px; color: #aaa; }
+        .char-stat span { color: #fff; font-weight: 600; }
+        .stat-bar-container { margin-bottom: 8px; }
+        .stat-label { display: flex; justify-content: space-between; font-size: 12px; color: #aaa; margin-bottom: 4px; }
+        .stat-bar { height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; }
+        .stat-fill { height: 100%; border-radius: 3px; transition: width 0.5s ease; }
+        .stat-fill.exp { background: linear-gradient(90deg, #667eea, #764ba2); }
+        .stat-fill.energy { background: linear-gradient(90deg, #2ecc71, #27ae60); }
+        .stat-fill.stress { background: linear-gradient(90deg, #f39c12, #e74c3c); }
+        .stat-fill.reputation { background: linear-gradient(90deg, #3498db, #2980b9); }
+        .empty-state { text-align: center; padding: 60px 20px; color: #666; }
+        .empty-state p { margin-bottom: 16px; }
+        .add-char-btn {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 14px 28px; background: linear-gradient(135deg, #667eea, #764ba2);
+            border: none; border-radius: 12px; color: #fff; font-size: 15px;
+            font-weight: 600; cursor: pointer; transition: all 0.3s;
+        }
+        .add-char-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(102,126,234,0.4); }
+
+        /* Character Creation */
+        .create-container { max-width: 700px; margin: 0 auto; padding: 40px 20px; }
+        .create-container h2 { font-size: 24px; color: #fff; margin-bottom: 8px; }
+        .create-container .desc { color: #888; margin-bottom: 30px; }
+        .examples { margin-bottom: 20px; }
+        .examples h4 { font-size: 14px; color: #aaa; margin-bottom: 10px; }
+        .example-btn {
+            display: block; width: 100%; text-align: left; padding: 10px 14px;
+            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px; color: #667eea; font-size: 13px; cursor: pointer;
+            margin-bottom: 8px; transition: all 0.3s;
+        }
+        .example-btn:hover { background: rgba(102,126,234,0.1); border-color: #667eea; }
+        .tips {
+            background: rgba(102,126,234,0.1); border: 1px solid rgba(102,126,234,0.2);
+            border-radius: 12px; padding: 16px; margin-bottom: 20px;
+        }
+        .tips h4 { color: #667eea; margin-bottom: 8px; font-size: 14px; }
+        .tips ul { list-style: none; }
+        .tips li { font-size: 13px; color: #aaa; margin-bottom: 4px; }
+        .tips li::before { content: "💡 "; }
+        .back-link { color: #667eea; text-decoration: none; font-size: 14px; display: inline-block; margin-bottom: 20px; cursor: pointer; }
+
+        /* Game Page */
+        .game-header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 16px 0; border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .game-grid { display: grid; grid-template-columns: 1fr 2fr; gap: 20px; margin-top: 20px; }
+        @media (max-width: 768px) { .game-grid { grid-template-columns: 1fr; } }
+        .panel {
+            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px; padding: 24px;
+        }
+        .panel h3 { color: #fff; margin-bottom: 16px; font-size: 16px; }
+        .game-actions { margin-top: 20px; }
+        .action-btn {
+            width: 100%; padding: 14px; margin-bottom: 10px; border: none; border-radius: 10px;
+            font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.3s;
+        }
+        .action-btn.primary { background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; }
+        .action-btn.primary:hover { transform: translateY(-2px); }
+        .action-btn.secondary { background: rgba(255,255,255,0.1); color: #ccc; }
+        .action-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        .log-entry {
+            background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 12px; padding: 16px; margin-bottom: 12px; transition: all 0.3s;
+        }
+        .log-entry:hover { border-color: rgba(102,126,234,0.3); }
+        .log-entry .log-header { display: flex; justify-content: space-between; margin-bottom: 8px; }
+        .log-entry .log-event { font-weight: 600; color: #fff; font-size: 14px; }
+        .log-entry .log-time { font-size: 11px; color: #666; }
+        .log-entry .log-scene { font-size: 12px; color: #667eea; margin-bottom: 6px; }
+        .log-entry .log-outcome { font-size: 13px; color: #aaa; line-height: 1.6; margin-bottom: 8px; }
+        .log-impacts { display: flex; flex-wrap: wrap; gap: 8px; }
+        .impact-tag { font-size: 11px; padding: 3px 8px; border-radius: 4px; }
+        .impact-tag.positive { background: rgba(46,204,113,0.2); color: #2ecc71; }
+        .impact-tag.negative { background: rgba(231,76,60,0.2); color: #e74c3c; }
+        .impact-tag.neutral { background: rgba(52,152,219,0.2); color: #3498db; }
+        .log-container { max-height: 600px; overflow-y: auto; }
+        .log-container::-webkit-scrollbar { width: 6px; }
+        .log-container::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 3px; }
+        .loading { text-align: center; padding: 40px; color: #667eea; }
+        .loading::after { content: ''; display: inline-block; width: 20px; height: 20px; border: 2px solid #667eea; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; margin-left: 8px; vertical-align: middle; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .skill-list { margin-top: 12px; }
+        .skill-item { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 6px; color: #aaa; }
+        .skill-item span:last-child { color: #667eea; font-weight: 600; }
+        .scene-info { background: rgba(102,126,234,0.1); border-radius: 8px; padding: 12px; margin-bottom: 16px; font-size: 13px; color: #aaa; }
+        .message { padding: 10px 14px; border-radius: 8px; margin-bottom: 12px; font-size: 13px; }
+        .message.success { background: rgba(46,204,113,0.2); color: #2ecc71; border: 1px solid rgba(46,204,113,0.3); }
+        .message.error { background: rgba(231,76,60,0.2); color: #e74c3c; border: 1px solid rgba(231,76,60,0.3); }
+    </style>
+</head>
+<body>
+    <!-- Login Page -->
+    <div id="page-login" class="page active">
+        <div class="auth-container">
+            <div class="auth-card">
+                <h1>🎮 金融职场生存者</h1>
+                <p class="subtitle">AI 驱动的金融职场生存模拟游戏</p>
+                <div id="login-error" class="error-msg" style="display:none"></div>
+                <div class="form-group">
+                    <label>邮箱</label>
+                    <input type="email" id="login-email" placeholder="your@email.com">
+                </div>
+                <div class="form-group">
+                    <label>密码</label>
+                    <input type="password" id="login-password" placeholder="••••••••">
+                </div>
+                <button class="btn btn-primary" onclick="handleLogin()">登录</button>
+                <button class="btn btn-secondary" onclick="showPage('page-register')">注册新账号</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Register Page -->
+    <div id="page-register" class="page">
+        <div class="auth-container">
+            <div class="auth-card">
+                <h1>🎮 金融职场生存者</h1>
+                <p class="subtitle">创建你的账号</p>
+                <div id="register-error" class="error-msg" style="display:none"></div>
+                <div class="form-group">
+                    <label>用户名</label>
+                    <input type="text" id="reg-username" placeholder="你的昵称">
+                </div>
+                <div class="form-group">
+                    <label>邮箱</label>
+                    <input type="email" id="reg-email" placeholder="your@email.com">
+                </div>
+                <div class="form-group">
+                    <label>密码</label>
+                    <input type="password" id="reg-password" placeholder="至少 6 位">
+                </div>
+                <button class="btn btn-primary" onclick="handleRegister()">注册</button>
+                <button class="btn btn-secondary" onclick="showPage('page-login')">已有账号？登录</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dashboard Page -->
+    <div id="page-dashboard" class="page">
+        <div class="container">
+            <div class="header">
+                <h1>🎮 金融职场生存者</h1>
+                <div class="user-info">
+                    <span class="username" id="dash-username"></span>
+                    <button class="logout-btn" onclick="handleLogout()">退出登录</button>
+                </div>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+                <h2 class="section-title" style="margin-bottom:0">我的角色</h2>
+                <button class="add-char-btn" onclick="showPage('page-create')">+ 创建新角色</button>
+            </div>
+            <div id="char-list" class="char-grid"></div>
+            <div id="empty-state" class="empty-state" style="display:none">
+                <p style="font-size:48px;margin-bottom:16px">🏦</p>
+                <p>还没有角色</p>
+                <p style="font-size:14px">创建你的第一个数字人角色，开始金融职场之旅！</p>
+                <button class="add-char-btn" style="margin-top:20px" onclick="showPage('page-create')">+ 创建新角色</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Character Creation Page -->
+    <div id="page-create" class="page">
+        <div class="create-container">
+            <a class="back-link" onclick="showPage('page-dashboard')">← 返回仪表板</a>
+            <h2>创建你的数字人角色</h2>
+            <p class="desc">用自然语言描述你想扮演的角色，AI 将解析并创建角色</p>
+            <div id="create-error" class="error-msg" style="display:none"></div>
+            <div class="form-group">
+                <label>角色描述 *</label>
+                <textarea id="char-desc" rows="8" placeholder="请描述你的角色，包括：&#10;- 姓名、年龄&#10;- 性格特点（如：外向/内向、谨慎/冒险等）&#10;- 品格特质（如：正直、坚韧、圆滑等）&#10;- 教育背景和专业技能&#10;- 职业发展方向（投行/商行/证券/基金/保险）&#10;- 工作风格和价值观"></textarea>
+            </div>
+            <div class="examples">
+                <h4>示例描述（点击使用）：</h4>
+                <button class="example-btn" onclick="document.getElementById('char-desc').value=this.dataset.desc" data-desc="李明，25岁，性格外向开朗，善于沟通。本科毕业于复旦大学金融专业，持有CFA一级证书。专业技能包括财务分析、估值建模、行业研究。希望在投资银行领域发展，目标是成为投行董事总经理。工作风格结果导向，能承受高压。">📋 投行精英 - 李明</button>
+                <button class="example-btn" onclick="document.getElementById('char-desc').value=this.dataset.desc" data-desc="王芳，23岁，性格谨慎细致，逻辑思维强。硕士毕业于北京大学经济学专业。擅长数据分析、风险管理、量化分析。希望在商业银行风险管理部发展。为人正直，注重合规，团队合作意识强。">📋 风控专家 - 王芳</button>
+                <button class="example-btn" onclick="document.getElementById('char-desc').value=this.dataset.desc" data-desc="张伟，26岁，性格沉稳内敛，研究能力强。博士毕业于清华大学金融工程专业。精通Python、量化投资、衍生品定价。希望在基金公司量化投资部发展。追求长期价值，独立思考，不随波逐流。">📋 量化天才 - 张伟</button>
+            </div>
+            <div class="tips">
+                <h4>提示</h4>
+                <ul>
+                    <li>描述越详细，AI 解析越准确</li>
+                    <li>可以包含教育背景、证书、技能等</li>
+                    <li>明确职业发展方向有助于 AI 做出更合适的决策</li>
+                    <li>性格和品格会影响 AI 的决策风格</li>
+                </ul>
+            </div>
+            <button class="btn btn-primary" onclick="handleCreateCharacter()">创建角色</button>
+        </div>
+    </div>
+
+    <!-- Game Page -->
+    <div id="page-game" class="page">
+        <div class="container">
+            <div class="game-header">
+                <a class="back-link" onclick="showPage('page-dashboard')" style="margin:0">← 返回</a>
+                <h2 id="game-char-name" style="color:#fff;font-size:20px"></h2>
+                <div style="width:60px"></div>
+            </div>
+            <div id="game-message"></div>
+            <div class="game-grid">
+                <div>
+                    <div class="panel">
+                        <h3>📊 角色状态</h3>
+                        <div id="game-stats"></div>
+                    </div>
+                    <div class="panel" style="margin-top:16px">
+                        <h3>⚡ 操作</h3>
+                        <div class="game-actions">
+                            <button class="action-btn primary" id="btn-turn" onclick="executeTurn()">执行一个回合</button>
+                            <button class="action-btn secondary" id="btn-auto" onclick="executeAutoPlay()">自动播放 (5 回合)</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="panel">
+                    <h3>📜 游戏日志</h3>
+                    <div id="game-log" class="log-container">
+                        <div class="empty-state"><p>点击"执行一个回合"开始游戏</p></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // ============================================
+    // Game State Management
+    // ============================================
+    const API_URL = 'https://financial-survival-game.onrender.com/api';
+    let currentUser = null;
+    let currentToken = null;
+    let currentCharacter = null;
+    let gameLog = [];
+
+    // ============================================
+    // Page Navigation
+    // ============================================
+    function showPage(pageId) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.getElementById(pageId).classList.add('active');
+        if (pageId === 'page-dashboard') loadCharacters();
+    }
+
+    // ============================================
+    // Auth Functions
+    // ============================================
+    async function handleLogin() {
+        const email = document.getElementById('login-email').value;
+        const password = document.getElementById('login-password').value;
+        const errorEl = document.getElementById('login-error');
+        errorEl.style.display = 'none';
+
+        if (!email || !password) {
+            errorEl.textContent = '请填写所有字段';
+            errorEl.style.display = 'block';
+            return;
+        }
+
+        try {
+            // Demo mode - store locally
+            const users = JSON.parse(localStorage.getItem('fsg_users') || '[]');
+            const user = users.find(u => u.email === email && u.password === password);
+            if (user) {
+                currentUser = user;
+                currentToken = 'demo-' + user.email;
+                localStorage.setItem('fsg_token', currentToken);
+                localStorage.setItem('fsg_user', JSON.stringify(user));
+                document.getElementById('dash-username').textContent = user.username;
+                showPage('page-dashboard');
+            } else {
+                errorEl.textContent = '邮箱或密码错误';
+                errorEl.style.display = 'block';
+            }
+        } catch (e) {
+            errorEl.textContent = '登录失败: ' + e.message;
+            errorEl.style.display = 'block';
+        }
+    }
+
+    async function handleRegister() {
+        const username = document.getElementById('reg-username').value;
+        const email = document.getElementById('reg-email').value;
+        const password = document.getElementById('reg-password').value;
+        const errorEl = document.getElementById('register-error');
+        errorEl.style.display = 'none';
+
+        if (!username || !email || !password) {
+            errorEl.textContent = '请填写所有字段';
+            errorEl.style.display = 'block';
+            return;
+        }
+        if (password.length < 6) {
+            errorEl.textContent = '密码至少 6 位';
+            errorEl.style.display = 'block';
+            return;
+        }
+
+        const users = JSON.parse(localStorage.getItem('fsg_users') || '[]');
+        if (users.find(u => u.email === email)) {
+            errorEl.textContent = '该邮箱已注册';
+            errorEl.style.display = 'block';
+            return;
+        }
+
+        const user = { username, email, password, id: Date.now() };
+        users.push(user);
+        localStorage.setItem('fsg_users', JSON.stringify(users));
+        currentUser = user;
+        currentToken = 'demo-' + email;
+        localStorage.setItem('fsg_token', currentToken);
+        localStorage.setItem('fsg_user', JSON.stringify(user));
+        document.getElementById('dash-username').textContent = username;
+        showPage('page-dashboard');
+    }
+
+    function handleLogout() {
+        currentUser = null;
+        currentToken = null;
+        localStorage.removeItem('fsg_token');
+        localStorage.removeItem('fsg_user');
+        showPage('page-login');
+    }
+
+    // ============================================
+    // Character Functions
+    // ============================================
+    function getCharacters() {
+        if (!currentUser) return [];
+        return JSON.parse(localStorage.getItem('fsg_chars_' + currentUser.email) || '[]');
+    }
+
+    function saveCharacters(chars) {
+        if (!currentUser) return;
+        localStorage.setItem('fsg_chars_' + currentUser.email, JSON.stringify(chars));
+    }
+
+    function loadCharacters() {
+        const chars = getCharacters();
+        const listEl = document.getElementById('char-list');
+        const emptyEl = document.getElementById('empty-state');
+
+        if (chars.length === 0) {
+            listEl.innerHTML = '';
+            emptyEl.style.display = 'block';
+            return;
+        }
+
+        emptyEl.style.display = 'none';
+        listEl.innerHTML = chars.map((c, i) => `
+            <div class="char-card" onclick="openGame(${i})">
+                <h3>${c.name}</h3>
+                <div class="career">${careerLabel(c.careerDirection)}</div>
+                <div class="stat-bar-container">
+                    <div class="stat-label"><span>等级</span><span>Lv.${c.level}</span></div>
+                    <div class="stat-bar"><div class="stat-fill exp" style="width:${(c.exp / (c.level * 100)) * 100}%"></div></div>
+                </div>
+                <div class="char-stats">
+                    <div class="char-stat">职位: <span>${c.job}</span></div>
+                    <div class="char-stat">声誉: <span>${c.reputation}</span></div>
+                    <div class="char-stat">精力: <span>${c.energy}/100</span></div>
+                    <div class="char-stat">压力: <span>${c.stress}/100</span></div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function careerLabel(c) {
+        const labels = {
+            'investment-banking': '🏦 投资银行',
+            'commercial-banking': '🏛️ 商业银行',
+            'securities': '📈 证券公司',
+            'fund': '💰 基金公司',
+            'insurance': '🛡️ 保险公司',
+            'undecided': '❓ 未定'
+        };
+        return labels[c] || labels['undecided'];
+    }
+
+    // ============================================
+    // AI Character Parsing (GLM-4.5-Flash)
+    // ============================================
+    async function parseCharacterWithAI(description) {
+        try {
+            const response = await fetch('https://open.bigmodel.cn/api/paas/v4/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Authorization': 'Bearer 7b8a15f57d2941a69fcce60f49f7c6ff.SiMrZjCdyOmdtzLr',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    model: 'glm-4-flash',
+                    messages: [
+                        { role: 'system', content: '你是一个专业的角色分析助手，擅长从自然语言描述中提取结构化信息。只返回JSON，不要其他内容。' },
+                        { role: 'user', content: `分析以下角色描述，返回JSON：\n${description}\n\n格式：{"name":"角色名称","traits":{"personality":"性格","character":"品格","workStyle":"工作风格"},"skills":[{"name":"技能名","level":1-10,"category":"technical|soft|management"}],"careerDirection":"investment-banking|commercial-banking|securities|fund|insurance|undecided","background":"背景故事(50字)"}` }
+                    ],
+                    temperature: 0.7,
+                    max_tokens: 800
+                })
+            });
+
+            const data = await response.json();
+            const content = data.choices[0].message.content;
+            const jsonMatch = content.match(/\{[\s\S]*\}/);
+            if (jsonMatch) return JSON.parse(jsonMatch[0]);
+            throw new Error('Parse failed');
+        } catch (e) {
+            console.error('AI parse error:', e);
+            // Fallback: simple parsing
+            return {
+                name: description.split(/[，,]/)[0].trim() || '未知角色',
+                traits: { personality: '均衡', character: '正直', workStyle: '团队合作' },
+                skills: [{ name: '基础分析', level: 3, category: 'technical' }],
+                careerDirection: 'undecided',
+                background: '一位有抱负的金融新人。'
+            };
+        }
+    }
+
+    // ============================================
+    // AI Game Decision (GLM-4.5-Flash)
+    // ============================================
+    async function getAIDecision(character, scene) {
+        try {
+            const response = await fetch('https://open.bigmodel.cn/api/paas/v4/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Authorization': 'Bearer 7b8a15f57d2941a69fcce60f49f7c6ff.SiMrZjCdyOmdtzLr',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    model: 'glm-4-flash',
+                    messages: [
+                        { role: 'system', content: '你是金融职场生存游戏的AI叙事引擎。根据角色特质和当前场景，生成一段200字左右的职场事件描述和结果。只返回JSON。' },
+                        { role: 'user', content: `角色：${character.name}，性格：${character.traits?.personality || '均衡'}，品格：${character.traits?.character || '正直'}，职位：${character.job}，精力：${character.energy}，压力：${character.stress}，声誉：${character.reputation}，场景：${scene.name}\n\n返回JSON：{"event":"事件名称(10字内)","description":"事件详细描述和角色的决策过程(200字)","outcome":"结果描述(100字)","impacts":{"experience":数字(-20~30),"stress":数字(-10~25),"reputation":数字(-15~20),"energy":数字(-20~5),"salary":数字(0~5000)}}` }
+                    ],
+                    temperature: 0.9,
+                    max_tokens: 600
+                })
+            });
+
+            const data = await response.json();
+            const content = data.choices[0].message.content;
+            const jsonMatch = content.match(/\{[\s\S]*\}/);
+            if (jsonMatch) return JSON.parse(jsonMatch[0]);
+            throw new Error('Decision parse failed');
+        } catch (e) {
+            console.error('AI decision error:', e);
+            return {
+                event: scene.name + '的挑战',
+                description: `${character.name}在${scene.name}中面临了一个关键决策。经过深思熟虑，${character.name}根据自己的判断做出了选择。`,
+                outcome: '事件顺利完成，获得了一些经验。',
+                impacts: { experience: 10, stress: 5, reputation: 3, energy: -8, salary: 0 }
+            };
+        }
+    }
+
+    async function handleCreateCharacter() {
+        const desc = document.getElementById('char-desc').value;
+        const errorEl = document.getElementById('create-error');
+        errorEl.style.display = 'none';
+
+        if (desc.length < 20) {
+            errorEl.textContent = '请至少输入 20 个字符的角色描述';
+            errorEl.style.display = 'block';
+            return;
+        }
+
+        errorEl.textContent = 'AI 正在解析角色...';
+        errorEl.style.display = 'block';
+        errorEl.style.color = '#667eea';
+
+        const parsed = await parseCharacterWithAI(desc);
+
+        const char = {
+            id: Date.now(),
+            name: parsed.name,
+            description: desc,
+            traits: parsed.traits,
+            skills: parsed.skills || [],
+            careerDirection: parsed.careerDirection || 'undecided',
+            background: parsed.background || '',
+            job: 'Analyst',
+            company: '待定',
+            level: 1,
+            exp: 0,
+            energy: 100,
+            stress: 0,
+            reputation: 50,
+            salary: 10000,
+            sceneIndex: 0,
+            log: [],
+            createdAt: new Date().toISOString()
+        };
+
+        const chars = getCharacters();
+        chars.push(char);
+        saveCharacters(chars);
+        showPage('page-dashboard');
+    }
+
+    // ============================================
+    // Scene Data (100+ scenes)
+    // ============================================
+    const SCENES = [
+        // Investment Banking (20)
+        {id:'ib-1',name:'入职培训',cat:'investment-banking',desc:'你刚加入投行，参加入职培训。'},
+        {id:'ib-2',name:'第一个IPO项目',cat:'investment-banking',desc:'你被分配到IPO项目组。'},
+        {id:'ib-3',name:'并购重组',cat:'investment-banking',desc:'团队接到一个大型并购项目。'},
+        {id:'ib-4',name:'债券发行',cat:'investment-banking',desc:'你参与企业债券发行项目。'},
+        {id:'ib-5',name:'尽职调查',cat:'investment-banking',desc:'你负责对目标公司尽调。'},
+        {id:'ib-6',name:'晋升答辩',cat:'investment-banking',desc:'年度晋升季，准备答辩。'},
+        {id:'ib-7',name:'客户晚宴',cat:'investment-banking',desc:'MD邀请你参加商务晚宴。'},
+        {id:'ib-8',name:'跨部门协作',cat:'investment-banking',desc:'与合规部门合作审查文件。'},
+        {id:'ib-9',name:'市场波动',cat:'investment-banking',desc:'市场暴跌，IPO定价面临挑战。'},
+        {id:'ib-10',name:'管理实习生',cat:'investment-banking',desc:'你开始管理暑期实习生。'},
+        {id:'ib-11',name:'行业峰会',cat:'investment-banking',desc:'公司派你参加行业峰会。'},
+        {id:'ib-12',name:'紧急项目',cat:'investment-banking',desc:'MD临时安排紧急项目。'},
+        {id:'ib-13',name:'团队建设',cat:'investment-banking',desc:'季度团建活动。'},
+        {id:'ib-14',name:'合规培训',cat:'investment-banking',desc:'年度合规培训。'},
+        {id:'ib-15',name:'跨境项目',cat:'investment-banking',desc:'跨境并购项目。'},
+        {id:'ib-16',name:'内部转岗',cat:'investment-banking',desc:'考虑从IPO组转到M&A组。'},
+        {id:'ib-17',name:'监管检查',cat:'investment-banking',desc:'监管部门例行检查。'},
+        {id:'ib-18',name:'年终奖',cat:'investment-banking',desc:'年终奖发放季节。'},
+        {id:'ib-19',name:'猎头接触',cat:'investment-banking',desc:'猎头提供高薪机会。'},
+        {id:'ib-20',name:'上市敲钟',cat:'investment-banking',desc:'你负责的IPO成功上市！'},
+        // Commercial Banking (20)
+        {id:'cb-1',name:'分行报到',cat:'commercial-banking',desc:'你加入商业银行对公业务部。'},
+        {id:'cb-2',name:'对公业务',cat:'commercial-banking',desc:'为企业客户提供金融服务。'},
+        {id:'cb-3',name:'零售银行',cat:'commercial-banking',desc:'负责个人理财产品推广。'},
+        {id:'cb-4',name:'风险管理',cat:'commercial-banking',desc:'评估大额贷款风险。'},
+        {id:'cb-5',name:'信贷审批',cat:'commercial-banking',desc:'审批委员会讨论贷款申请。'},
+        {id:'cb-6',name:'客户投诉',cat:'commercial-banking',desc:'处理重要客户投诉。'},
+        {id:'cb-7',name:'产品设计',cat:'commercial-banking',desc:'设计结构性存款产品。'},
+        {id:'cb-8',name:'科技金融',cat:'commercial-banking',desc:'银行数字化转型项目。'},
+        {id:'cb-9',name:'合规检查',cat:'commercial-banking',desc:'银保监会合规检查。'},
+        {id:'cb-10',name:'支行管理',cat:'commercial-banking',desc:'你被任命为支行副行长。'},
+        {id:'cb-11',name:'贷款催收',cat:'commercial-banking',desc:'处理逾期贷款催收。'},
+        {id:'cb-12',name:'资金运营',cat:'commercial-banking',desc:'优化资产负债管理。'},
+        {id:'cb-13',name:'国际业务',cat:'commercial-banking',desc:'跨境贸易融资方案。'},
+        {id:'cb-14',name:'私人银行',cat:'commercial-banking',desc:'服务高净值客户。'},
+        {id:'cb-15',name:'普惠金融',cat:'commercial-banking',desc:'为小微企业设计产品。'},
+        {id:'cb-16',name:'数字化转型',cat:'commercial-banking',desc:'核心系统升级项目。'},
+        {id:'cb-17',name:'压力测试',cat:'commercial-banking',desc:'完成年度压力测试。'},
+        {id:'cb-18',name:'监管报告',cat:'commercial-banking',desc:'月度监管报告截止。'},
+        {id:'cb-19',name:'同业业务',cat:'commercial-banking',desc:'同业拆借市场波动。'},
+        {id:'cb-20',name:'行长办公会',cat:'commercial-banking',desc:'讨论分行年度战略。'},
+        // Securities (20)
+        {id:'sec-1',name:'研究所入职',cat:'securities',desc:'你成为行业研究员。'},
+        {id:'sec-2',name:'首篇研报',cat:'securities',desc:'撰写首篇深度研究报告。'},
+        {id:'sec-3',name:'路演推介',cat:'securities',desc:'向机构投资者路演。'},
+        {id:'sec-4',name:'晨会发言',cat:'securities',desc:'晨会分享研究观点。'},
+        {id:'sec-5',name:'上市公司调研',cat:'securities',desc:'实地调研上市公司。'},
+        {id:'sec-6',name:'模型更新',cat:'securities',desc:'更新行业估值模型。'},
+        {id:'sec-7',name:'客户拜访',cat:'securities',desc:'拜访重要机构客户。'},
+        {id:'sec-8',name:'评级调整',cat:'securities',desc:'调整覆盖公司评级。'},
+        {id:'sec-9',name:'IPO承销',cat:'securities',desc:'参与IPO承销项目。'},
+        {id:'sec-10',name:'自营交易',cat:'securities',desc:'负责股票自营投资。'},
+        {id:'sec-11',name:'资管产品',cat:'securities',desc:'设计资产管理产品。'},
+        {id:'sec-12',name:'合规风控',cat:'securities',desc:'研究报告合规审查。'},
+        {id:'sec-13',name:'投顾服务',cat:'securities',desc:'为零售客户提供建议。'},
+        {id:'sec-14',name:'量化策略',cat:'securities',desc:'参与量化策略开发。'},
+        {id:'sec-15',name:'新三板项目',cat:'securities',desc:'负责新三板挂牌。'},
+        {id:'sec-16',name:'ABS发行',cat:'securities',desc:'参与ABS产品发行。'},
+        {id:'sec-17',name:'做市商业务',cat:'securities',desc:'提供买卖报价。'},
+        {id:'sec-18',name:'债券交易',cat:'securities',desc:'债券市场交易决策。'},
+        {id:'sec-19',name:'股指期货',cat:'securities',desc:'应对股指期货异常波动。'},
+        {id:'sec-20',name:'年度策略会',cat:'securities',desc:'发表年度策略演讲。'},
+        // Fund (20)
+        {id:'fund-1',name:'基金公司入职',cat:'fund',desc:'加入公募基金权益投资部。'},
+        {id:'fund-2',name:'股票池筛选',cat:'fund',desc:'从3000+股票中筛选标的。'},
+        {id:'fund-3',name:'基金经理助理',cat:'fund',desc:'参与投资决策。'},
+        {id:'fund-4',name:'投资决策会',cat:'fund',desc:'讨论下季度投资策略。'},
+        {id:'fund-5',name:'行业配置',cat:'fund',desc:'提出行业配置建议。'},
+        {id:'fund-6',name:'个股调研',cat:'fund',desc:'深入调研上市公司。'},
+        {id:'fund-7',name:'风险控制',cat:'fund',desc:'持仓集中度超标预警。'},
+        {id:'fund-8',name:'业绩归因',cat:'fund',desc:'分析基金业绩归因。'},
+        {id:'fund-9',name:'渠道路演',cat:'fund',desc:'向渠道客户路演。'},
+        {id:'fund-10',name:'产品设计',cat:'fund',desc:'设计主题基金产品。'},
+        {id:'fund-11',name:'量化投资',cat:'fund',desc:'因子研究与策略开发。'},
+        {id:'fund-12',name:'FOF配置',cat:'fund',desc:'选择子基金构建组合。'},
+        {id:'fund-13',name:'ESG投资',cat:'fund',desc:'ESG投资策略研究。'},
+        {id:'fund-14',name:'港股通投资',cat:'fund',desc:'投资港股标的。'},
+        {id:'fund-15',name:'打新策略',cat:'fund',desc:'制定IPO打新策略。'},
+        {id:'fund-16',name:'定增项目',cat:'fund',desc:'评估定增投资机会。'},
+        {id:'fund-17',name:'可转债投资',cat:'fund',desc:'评估可转债投资价值。'},
+        {id:'fund-18',name:'ETF管理',cat:'fund',desc:'管理ETF产品。'},
+        {id:'fund-19',name:'养老金投资',cat:'fund',desc:'养老金账户投资管理。'},
+        {id:'fund-20',name:'年度业绩排名',cat:'fund',desc:'年底基金业绩排名。'},
+        // Insurance (20)
+        {id:'ins-1',name:'保险公司入职',cat:'insurance',desc:'加入保险公司精算部。'},
+        {id:'ins-2',name:'精算模型',cat:'insurance',desc:'学习专业精算软件。'},
+        {id:'ins-3',name:'产品定价',cat:'insurance',desc:'为寿险产品定价。'},
+        {id:'ins-4',name:'核保决策',cat:'insurance',desc:'大额保单核保决策。'},
+        {id:'ins-5',name:'理赔处理',cat:'insurance',desc:'处理复杂理赔案件。'},
+        {id:'ins-6',name:'再保险',cat:'insurance',desc:'安排再保险分散风险。'},
+        {id:'ins-7',name:'资金运用',cat:'insurance',desc:'制定保险资金投资策略。'},
+        {id:'ins-8',name:'偿付能力',cat:'insurance',desc:'完成偿付能力评估。'},
+        {id:'ins-9',name:'渠道管理',cat:'insurance',desc:'管理保险代理人渠道。'},
+        {id:'ins-10',name:'保险科技',cat:'insurance',desc:'保险科技项目推进。'},
+        {id:'ins-11',name:'健康险设计',cat:'insurance',desc:'设计创新健康险产品。'},
+        {id:'ins-12',name:'年金产品',cat:'insurance',desc:'设计年金保险产品。'},
+        {id:'ins-13',name:'车险定价',cat:'insurance',desc:'车险综合改革定价。'},
+        {id:'ins-14',name:'团体保险',cat:'insurance',desc:'企业团体保险方案。'},
+        {id:'ins-15',name:'反欺诈调查',cat:'insurance',desc:'调查可疑保险欺诈。'},
+        {id:'ins-16',name:'精算报告',cat:'insurance',desc:'准备年度精算报告。'},
+        {id:'ins-17',name:'监管报告',cat:'insurance',desc:'提交监管专项报告。'},
+        {id:'ins-18',name:'资产负债管理',cat:'insurance',desc:'优化资产负债匹配。'},
+        {id:'ins-19',name:'战略规划',cat:'insurance',desc:'参与五年战略规划。'},
+        {id:'ins-20',name:'行业论坛',cat:'insurance',desc:'在行业论坛分享经验。'}
+    ];
+
+    // ============================================
+    // Game Functions
+    // ============================================
+    function openGame(charIndex) {
+        const chars = getCharacters();
+        currentCharacter = { ...chars[charIndex], _index: charIndex };
+        gameLog = currentCharacter.log || [];
+
+        document.getElementById('game-char-name').textContent = currentCharacter.name + ' 的职场之旅';
+        updateGameUI();
+        renderGameLog();
+        showPage('page-game');
+    }
+
+    function updateGameUI() {
+        const c = currentCharacter;
+        document.getElementById('game-stats').innerHTML = `
+            <div class="stat-bar-container">
+                <div class="stat-label"><span>等级</span><span>Lv.${c.level}</span></div>
+                <div class="stat-bar"><div class="stat-fill exp" style="width:${Math.min(100,(c.exp/(c.level*100))*100)}%"></div></div>
+            </div>
+            <div class="stat-bar-container">
+                <div class="stat-label"><span>精力</span><span>${c.energy}/100</span></div>
+                <div class="stat-bar"><div class="stat-fill energy" style="width:${c.energy}%"></div></div>
+            </div>
+            <div class="stat-bar-container">
+                <div class="stat-label"><span>压力</span><span>${c.stress}/100</span></div>
+                <div class="stat-bar"><div class="stat-fill stress" style="width:${c.stress}%"></div></div>
+            </div>
+            <div class="stat-bar-container">
+                <div class="stat-label"><span>声誉</span><span>${c.reputation}/100</span></div>
+                <div class="stat-bar"><div class="stat-fill reputation" style="width:${c.reputation}%"></div></div>
+            </div>
+            <div class="char-stats" style="margin-top:16px">
+                <div class="char-stat">职位: <span>${c.job}</span></div>
+                <div class="char-stat">薪资: <span>¥${c.salary.toLocaleString()}</span></div>
+                <div class="char-stat">方向: <span>${careerLabel(c.careerDirection)}</span></div>
+                <div class="char-stat">公司: <span>${c.company}</span></div>
+            </div>
+            ${c.skills && c.skills.length > 0 ? `
+            <div class="skill-list">
+                ${c.skills.map(s => `<div class="skill-item"><span>${s.name}</span><span>Lv.${s.level}</span></div>`).join('')}
+            </div>` : ''}
+        `;
+
+        // Update buttons
+        document.getElementById('btn-turn').disabled = c.energy < 10;
+        document.getElementById('btn-auto').disabled = c.energy < 10;
+    }
+
+    function saveCharacter() {
+        const chars = getCharacters();
+        chars[currentCharacter._index] = { ...currentCharacter };
+        delete chars[currentCharacter._index]._index;
+        saveCharacters(chars);
+    }
+
+    function getCurrentScene() {
+        const cat = currentCharacter.careerDirection;
+        const level = currentCharacter.level;
+        // Find scenes matching career and level
+        const catScenes = SCENES.filter(s => s.cat === cat || cat === 'undecided');
+        if (catScenes.length === 0) return SCENES[0];
+        const idx = Math.min(currentCharacter.sceneIndex || 0, catScenes.length - 1);
+        return catScenes[idx];
+    }
+
+    async function executeTurn() {
+        if (currentCharacter.energy < 10) {
+            showMessage('精力不足，需要休息', 'error');
+            return;
+        }
+
+        document.getElementById('btn-turn').disabled = true;
+        document.getElementById('btn-auto').disabled = true;
+        showMessage('AI 正在生成事件...', 'success');
+
+        const scene = getCurrentScene();
+        const decision = await getAIDecision(currentCharacter, scene);
+
+        // Apply impacts
+        const imp = decision.impacts || {};
+        currentCharacter.exp = (currentCharacter.exp || 0) + (imp.experience || 0);
+        currentCharacter.stress = Math.max(0, Math.min(100, currentCharacter.stress + (imp.stress || 0)));
+        currentCharacter.reputation = Math.max(0, Math.min(100, currentCharacter.reputation + (imp.reputation || 0)));
+        currentCharacter.energy = Math.max(0, Math.min(100, currentCharacter.energy + (imp.energy || -8)));
+        currentCharacter.salary = (currentCharacter.salary || 10000) + (imp.salary || 0);
+
+        // Level up check
+        const expNeeded = currentCharacter.level * 100;
+        if (currentCharacter.exp >= expNeeded) {
+            currentCharacter.level++;
+            currentCharacter.exp = 0;
+            // Promotion check
+            const jobs = ['Analyst','Associate','VP','Director','MD','Partner'];
+            const jobIdx = Math.min(currentCharacter.level - 1, jobs.length - 1);
+            currentCharacter.job = jobs[jobIdx];
+        }
+
+        // Advance scene
+        currentCharacter.sceneIndex = ((currentCharacter.sceneIndex || 0) + 1) % 20;
+
+        // Add log
+        const logEntry = {
+            timestamp: new Date().toISOString(),
+            scene: scene.name,
+            event: decision.event,
+            description: decision.description,
+            outcome: decision.outcome,
+            impacts: imp
+        };
+        currentCharacter.log = currentCharacter.log || [];
+        currentCharacter.log.unshift(logEntry);
+        if (currentCharacter.log.length > 100) currentCharacter.log = currentCharacter.log.slice(0, 100);
+        gameLog = currentCharacter.log;
+
+        saveCharacter();
+        updateGameUI();
+        renderGameLog();
+        showMessage('回合完成！', 'success');
+        document.getElementById('btn-turn').disabled = currentCharacter.energy < 10;
+        document.getElementById('btn-auto').disabled = currentCharacter.energy < 10;
+    }
+
+    async function executeAutoPlay() {
+        if (currentCharacter.energy < 10) {
+            showMessage('精力不足', 'error');
+            return;
+        }
+
+        document.getElementById('btn-turn').disabled = true;
+        document.getElementById('btn-auto').disabled = true;
+
+        for (let i = 0; i < 5; i++) {
+            if (currentCharacter.energy < 10) {
+                showMessage(`完成 ${i} 个回合（精力不足）`, 'success');
+                break;
+            }
+            showMessage(`自动播放中... (${i + 1}/5)`, 'success');
+            await executeTurn();
+            await new Promise(r => setTimeout(r, 1500));
+        }
+
+        document.getElementById('btn-turn').disabled = currentCharacter.energy < 10;
+        document.getElementById('btn-auto').disabled = currentCharacter.energy < 10;
+    }
+
+    function renderGameLog() {
+        const container = document.getElementById('game-log');
+        if (!gameLog || gameLog.length === 0) {
+            container.innerHTML = '<div class="empty-state"><p>点击"执行一个回合"开始游戏</p></div>';
+            return;
+        }
+
+        container.innerHTML = gameLog.map(log => {
+            const imp = log.impacts || {};
+            const tags = [];
+            if (imp.experience) tags.push(`<span class="impact-tag ${imp.experience > 0 ? 'positive' : 'negative'}">EXP ${imp.experience > 0 ? '+' : ''}${imp.experience}</span>`);
+            if (imp.stress) tags.push(`<span class="impact-tag ${imp.stress < 0 ? 'positive' : 'negative'}">压力 ${imp.stress > 0 ? '+' : ''}${imp.stress}</span>`);
+            if (imp.reputation) tags.push(`<span class="impact-tag ${imp.reputation > 0 ? 'positive' : 'negative'}">声誉 ${imp.reputation > 0 ? '+' : ''}${imp.reputation}</span>`);
+            if (imp.energy) tags.push(`<span class="impact-tag ${imp.energy > 0 ? 'positive' : 'negative'}">精力 ${imp.energy > 0 ? '+' : ''}${imp.energy}</span>`);
+            if (imp.salary) tags.push(`<span class="impact-tag neutral">薪资 +¥${imp.salary.toLocaleString()}</span>`);
+
+            return `
+                <div class="log-entry">
+                    <div class="log-header">
+                        <span class="log-event">${log.event}</span>
+                        <span class="log-time">${new Date(log.timestamp).toLocaleString()}</span>
+                    </div>
+                    <div class="log-scene">📍 ${log.scene}</div>
+                    <div class="log-outcome">${log.description || ''}<br><br>${log.outcome || ''}</div>
+                    <div class="log-impacts">${tags.join('')}</div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function showMessage(text, type) {
+        const el = document.getElementById('game-message');
+        el.innerHTML = `<div class="message ${type}">${text}</div>`;
+        setTimeout(() => el.innerHTML = '', 3000);
+    }
+
+    // ============================================
+    // Init
+    // ============================================
+    (function init() {
+        const token = localStorage.getItem('fsg_token');
+        const user = JSON.parse(localStorage.getItem('fsg_user') || 'null');
+        if (token && user) {
+            currentUser = user;
+            currentToken = token;
+            document.getElementById('dash-username').textContent = user.username;
+            showPage('page-dashboard');
+        }
+    })();
+    </script>
+</body>
+</html>
